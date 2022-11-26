@@ -1,4 +1,4 @@
-from typing import Union, NewType, Collection, Optional
+from typing import Union, NewType, Collection, Iterable
 import sqlite3
 import os.path
 import logging
@@ -84,10 +84,10 @@ class FaceDB(object):
         cur.execute("""
         --sql
         CREATE TABLE IF NOT EXISTS images (
-            ID          INTEGER PRIMARY KEY NOT NULL, 
-            IMAGE_FMT   ImageFormat         NOT NULL, 
-            IMAGE_DATA  TEXT                NOT NULL,
-            DESCRIPTION TEXT                NOT NULL
+            ID              INTEGER PRIMARY KEY NOT NULL, 
+            IMAGE_FORMAT    ImageFormat         NOT NULL, 
+            IMAGE_DATA      TEXT                NOT NULL,
+            DESCRIPTION     TEXT                NOT NULL
         );
         """)
         self.db_conn.commit()
@@ -119,7 +119,7 @@ class FaceDB(object):
         cur = self.db_conn.cursor()
         cur.execute("""
         --sql
-        INSERT INTO images (IMAGE_FMT,IMAGE_DATA,DESCRIPTION) VALUES (?,?,?);
+        INSERT INTO images (IMAGE_FORMAT,IMAGE_DATA,DESCRIPTION) VALUES (?,?,?);
         """,
         (image_format, image_data, description))
         index = cur.lastrowid
@@ -150,12 +150,8 @@ class FaceDB(object):
         return face_indexes
         
     
-    def get_faces_with_tags(self, tags: Collection[str]) -> FaceData:
+    def get_faces_by_tags(self, tags: Collection[str]) -> Iterable[FaceData]:
         pass
-    
-    def compare_face_to_tags():
-        pass
-
 
 
 if __name__ == '__main__':
@@ -163,12 +159,15 @@ if __name__ == '__main__':
     
     facedb = FaceDB(DB_PATH)
     
+    with open('/home/amit/Downloads/group.jpg', 'rb') as f:
+        group = f.read()
+    
     # Adding faces from local image
-    face_indexes = facedb.add_faces_from_image(ImageFormat.LOCAL_PATH, '/home/amit/Downloads/group.jpg', description='group Image', tags=('hell', 'fuck'))
+    face_indexes = facedb.add_faces_from_image(ImageFormat.BYTE_STREAM, group, description='group Image', tags=('hell', 'fuck'))
     print(face_indexes)
     
-    print(list(facedb.db_conn.execute("""
+    print(type(list(facedb.db_conn.execute("""
     --sql
     SELECT faces.ID, IMAGE, IMAGE_DATA, faces.DESCRIPTION, FAces.TAGS FROM FACES LEFT OUTER JOIN images ON IMAGE = images.ID
     ;
-    """)))
+    """))[0][2]))
