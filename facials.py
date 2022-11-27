@@ -38,7 +38,6 @@ class FaceLocation(object):
         return (self.x1, self.y1, self.x2, self.y2)
         
 
-
 class ImageFormat(Enum):
     BYTE_STREAM = 'BYTE_STREAM'
     LOCAL_PATH = 'LOCAL_PATH'
@@ -51,7 +50,8 @@ class FaceData(object):
                  image_format: ImageFormat,
                  image_data: Union[str, bytes, int],
                  location: Union[FaceLocation, tuple[int, int, int, int]],
-                 encoding: FaceEncoding = None):
+                 encoding: FaceEncoding = None,
+                 **extra_properties):
         self.image_data: Union[str, bytes, int] = image_data
         self.image_format: ImageFormat = image_format
         
@@ -65,17 +65,26 @@ class FaceData(object):
             self.encoding = FaceData.encode(image_data, location)
         else:
             self.encoding = encoding
+            
+        self.extra_properties = extra_properties
 
     def compare(self, other_faces: Collection['FaceData']) -> list[tuple['FaceData', float]]:
         other_encodings = [other.encoding for other in other_faces]
         distances = face_recognition.face_distance(other_encodings, self.encoding)
         return [(face, distance) for face, distance in zip(other_faces, distances)]
+    
+    def cropped_face_image(self, image_format: ImageFormat = None, image_data: Union[str, bytes] = None):
+        """
+        Return a byte stream of the image of this face, cropped to contain only this face (using self.location).
+        If an `image_format` and `image_data` are entered as arguments, these will be used instead of the ones stored in `self` - 
+        this is needed for the case of a `self.image_format == ImageFormat.ID`, as the real image data is contained in a `FaceDB`.
+        """
+        pass
 
     @staticmethod
     def extract_from_image(image_format: ImageFormat,
                            image_data: Union[str, bytes, int]) -> list['FaceData']:
         if image_format == ImageFormat.BYTE_STREAM:
-            # TODO: test this against Gef's glorious image byte stream methods
             image_file = io.BytesIO(image_data)
             image = face_recognition.load_image_file(image_file)
         elif image_format == ImageFormat.LOCAL_PATH:
